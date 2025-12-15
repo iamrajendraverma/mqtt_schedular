@@ -123,6 +123,8 @@ def on_connect(client, userdata, flags, reason_code, properties):
 def on_message(client, userdata, msg):
     """Receives new job commands and ping requests."""
     
+    global PERSISTENT_JOBS  # Declare at the top of the function
+    
     # Handle ping requests for health checks
     if msg.topic == PING_TOPIC:
         try:
@@ -175,8 +177,6 @@ def on_message(client, userdata, msg):
             print(f"[{datetime.now().strftime('%H:%M:%S')}] Received New Job Request.")
             
             # --- CHECK FOR DUPLICATE JOBS ---
-            global PERSISTENT_JOBS
-            
             # Check if this exact job already exists
             is_duplicate = False
             for existing_job in PERSISTENT_JOBS:

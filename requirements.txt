@@ -1,0 +1,8 @@
+# MQTT Scheduler - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# MQTT Client Library
+paho-mqtt>=1.6.1
+
+# Job Scheduling Library
+schedule>=1.1.0

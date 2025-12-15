@@ -1,0 +1,8 @@
+[
+    {
+        "type": "daily",
+        "topic": "esp8266/command",
+        "payload": "OFF",
+        "time": "14:50"
+    }
+]

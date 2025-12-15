@@ -18,6 +18,8 @@ USERNAME = None
 PASSWORD = None    
 
 CONTROL_TOPIC = "myhome/scheduler/submit_job"
+PING_TOPIC = "myhome/scheduler/ping"          # Topic to receive ping requests
+STATUS_TOPIC = "myhome/scheduler/status"      # Topic to publish pong/status responses
 
 # Global list to hold the raw JSON data for all active jobs
 PERSISTENT_JOBS = [] 
@@ -95,12 +97,50 @@ def on_connect(client, userdata, flags, reason_code, properties):
         print(f"Failed to connect, return code {reason_code.rc}")
     else:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Connected to MQTT Broker!")
+        
+        # Subscribe to control topic for job submissions
         client.subscribe(CONTROL_TOPIC)
         print(f"Subscribed to control topic: {CONTROL_TOPIC}")
+        
+        # Subscribe to ping topic for health checks
+        client.subscribe(PING_TOPIC)
+        print(f"Subscribed to ping topic: {PING_TOPIC}")
+        
+        # Publish initial status message
+        status_msg = json.dumps({
+            "status": "online",
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "active_jobs": len(PERSISTENT_JOBS)
+        })
+        client.publish(STATUS_TOPIC, status_msg, retain=True)
+        print(f"Published online status to {STATUS_TOPIC}")
 
 def on_message(client, userdata, msg):
-    """Receives new job commands, adds them to the schedule, and saves them."""
-    if msg.topic == CONTROL_TOPIC:
+    """Receives new job commands and ping requests."""
+    
+    # Handle ping requests for health checks
+    if msg.topic == PING_TOPIC:
+        try:
+            payload = msg.payload.decode('utf-8').strip()
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Received PING request: '{payload}'")
+            
+            # Prepare pong response with status information
+            pong_response = json.dumps({
+                "status": "alive",
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "active_jobs": len(schedule.default_scheduler.get_jobs()),
+                "total_persistent_jobs": len(PERSISTENT_JOBS),
+                "ping_received": payload if payload else "ping"
+            })
+            
+            client.publish(STATUS_TOPIC, pong_response)
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Sent PONG response to {STATUS_TOPIC}")
+            
+        except Exception as e:
+            print(f"ERROR handling ping: {e}")
+    
+    # Handle job submission requests
+    elif msg.topic == CONTROL_TOPIC:
         try:
             job_data = json.loads(msg.payload.decode('utf-8'))
             

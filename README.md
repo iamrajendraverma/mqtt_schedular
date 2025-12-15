@@ -17,6 +17,8 @@ A Python-based MQTT scheduler that allows you to schedule and automate MQTT mess
 
 - **Automatic Reconnection**: Handles MQTT broker disconnections gracefully
 
+- **Health Check / Ping-Pong**: Built-in health monitoring that responds to ping requests with status information
+
 ## Architecture
 
 The project consists of three main components:
@@ -36,6 +38,7 @@ The project consists of three main components:
 1. Clone or download this repository
 
 2. Install required dependencies:
+
 ```bash
 pip install paho-mqtt schedule
 ```
@@ -59,11 +62,13 @@ CONTROL_TOPIC = "myhome/scheduler/submit_job"  # Topic to submit new jobs
 ### Starting the Scheduler
 
 Run the scheduler:
+
 ```bash
 python mqtt_scheduler.py
 ```
 
 The scheduler will:
+
 1. Load any previously saved jobs from `schedules.json`
 2. Connect to the MQTT broker
 3. Subscribe to the control topic
@@ -74,7 +79,9 @@ The scheduler will:
 Send a JSON message to the control topic (`myhome/scheduler/submit_job`) with the following structure:
 
 #### Daily Job Example
+
 Publish a message every day at a specific time:
+
 ```json
 {
     "type": "daily",
@@ -85,7 +92,9 @@ Publish a message every day at a specific time:
 ```
 
 #### Interval Job Example
+
 Publish a message every N seconds:
+
 ```json
 {
     "type": "interval",
@@ -94,10 +103,13 @@ Publish a message every N seconds:
     "time": 300
 }
 ```
+
 *Note: For interval jobs, `time` is in seconds*
 
 #### One-Time Job Example
+
 Publish a message once at a specific time (auto-cancels after execution):
+
 ```json
 {
     "type": "once",
@@ -119,6 +131,7 @@ Publish a message once at a specific time (auto-cancels after execution):
 ## Example Use Cases
 
 ### Home Automation
+
 ```json
 {
     "type": "daily",
@@ -127,9 +140,11 @@ Publish a message once at a specific time (auto-cancels after execution):
     "time": "22:00"
 }
 ```
+
 Turn off lights every night at 10 PM
 
 ### Periodic Status Checks
+
 ```json
 {
     "type": "interval",
@@ -138,9 +153,11 @@ Turn off lights every night at 10 PM
     "time": 60
 }
 ```
+
 Send a ping message every 60 seconds
 
 ### Reminder Notifications
+
 ```json
 {
     "type": "once",
@@ -149,11 +166,13 @@ Send a ping message every 60 seconds
     "time": "14:00"
 }
 ```
+
 Send a one-time reminder at 2 PM
 
 ## Persistence
 
 All scheduled jobs are automatically saved to `schedules.json`. When the scheduler restarts:
+
 - It loads all previously saved jobs
 - Recreates the schedules
 - Continues executing them as configured
@@ -163,6 +182,7 @@ All scheduled jobs are automatically saved to `schedules.json`. When the schedul
 ## Logging
 
 The scheduler provides detailed logging:
+
 - Connection status
 - Job creation and scheduling
 - Message publishing (success/failure)
@@ -170,6 +190,7 @@ The scheduler provides detailed logging:
 - Persistence operations
 
 Example log output:
+
 ```
 [2025-12-14 14:50:00] PUBLISHED: 'OFF' to Topic: esp8266/command
 [PERSISTENCE] Scheduler state saved to schedules.json.
@@ -184,19 +205,77 @@ You can test the scheduler using any MQTT client (e.g., MQTT Explorer, mosquitto
 mosquitto_pub -h broker.hivemq.com -t "myhome/scheduler/submit_job" -m '{"type":"daily","topic":"test/topic","payload":"Hello","time":"10:00"}'
 ```
 
+## Health Check / Ping-Pong
+
+The scheduler includes a built-in health monitoring system that allows you to verify if it's alive and connected.
+
+### Quick Health Check
+
+**Send a ping:**
+
+```bash
+mosquitto_pub -h broker.hivemq.com -t "myhome/scheduler/ping" -m "ping"
+```
+
+**Listen for response:**
+
+```bash
+mosquitto_sub -h broker.hivemq.com -t "myhome/scheduler/status" -v
+```
+
+**Response example:**
+
+```json
+{
+  "status": "alive",
+  "timestamp": "2025-12-15 18:45:30",
+  "active_jobs": 3,
+  "total_persistent_jobs": 5,
+  "ping_received": "ping"
+}
+```
+
+### Using Python Test Script
+
+```bash
+python ping_scheduler.py
+```
+
+This will send a ping and display the scheduler's status.
+
+### Continuous Monitoring
+
+```bash
+python monitor_scheduler.py
+```
+
+This will continuously monitor the scheduler health every 30 seconds.
+
+### Health Check Topics
+
+| Topic | Purpose | Direction |
+|-------|---------|-----------|
+| `myhome/scheduler/ping` | Send ping requests | Client → Scheduler |
+| `myhome/scheduler/status` | Receive status responses | Scheduler → Client |
+
+For detailed information, see [doc/ping_pong_health_check.md](doc/ping_pong_health_check.md)
+
 ## Troubleshooting
 
 ### Scheduler not connecting to broker
+
 - Verify the `BROKER_ADDRESS` and `PORT` are correct
 - Check if authentication is required (set `USERNAME` and `PASSWORD`)
 - Ensure network connectivity to the broker
 
 ### Jobs not executing
+
 - Check system time is correct
 - Verify the time format is `"HH:MM"` for daily/once jobs
 - Check the scheduler logs for errors
 
 ### Jobs not persisting
+
 - Ensure write permissions for `schedules.json`
 - Check for JSON formatting errors in the file
 

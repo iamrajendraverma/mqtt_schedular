@@ -20,6 +20,7 @@ PASSWORD = None
 CONTROL_TOPIC = "myhome/scheduler/submit_job"
 PING_TOPIC = "myhome/scheduler/ping"          # Topic to receive ping requests
 STATUS_TOPIC = "myhome/scheduler/status"      # Topic to publish pong/status responses
+LIST_JOBS_TOPIC = "myhome/scheduler/list_jobs"  # Topic to request list of all jobs
 
 # Global list to hold the raw JSON data for all active jobs
 PERSISTENT_JOBS = [] 
@@ -106,6 +107,10 @@ def on_connect(client, userdata, flags, reason_code, properties):
         client.subscribe(PING_TOPIC)
         print(f"Subscribed to ping topic: {PING_TOPIC}")
         
+        # Subscribe to list jobs topic
+        client.subscribe(LIST_JOBS_TOPIC)
+        print(f"Subscribed to list jobs topic: {LIST_JOBS_TOPIC}")
+        
         # Publish initial status message
         status_msg = json.dumps({
             "status": "online",
@@ -139,6 +144,24 @@ def on_message(client, userdata, msg):
         except Exception as e:
             print(f"ERROR handling ping: {e}")
     
+    # Handle list jobs requests
+    elif msg.topic == LIST_JOBS_TOPIC:
+        try:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Received LIST JOBS request")
+            
+            # Prepare response with all current jobs
+            jobs_response = json.dumps({
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "total_jobs": len(PERSISTENT_JOBS),
+                "jobs": PERSISTENT_JOBS
+            }, indent=2)
+            
+            client.publish(STATUS_TOPIC, jobs_response)
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Sent {len(PERSISTENT_JOBS)} job(s) to {STATUS_TOPIC}")
+            
+        except Exception as e:
+            print(f"ERROR handling list jobs request: {e}")
+    
     # Handle job submission requests
     elif msg.topic == CONTROL_TOPIC:
         try:
@@ -151,11 +174,32 @@ def on_message(client, userdata, msg):
             print("-" * 30)
             print(f"[{datetime.now().strftime('%H:%M:%S')}] Received New Job Request.")
             
+            # --- CHECK FOR DUPLICATE JOBS ---
+            global PERSISTENT_JOBS
+            
+            # Check if this exact job already exists
+            is_duplicate = False
+            for existing_job in PERSISTENT_JOBS:
+                if (existing_job.get("type") == job_data.get("type") and
+                    existing_job.get("topic") == job_data.get("topic") and
+                    existing_job.get("payload") == job_data.get("payload") and
+                    existing_job.get("time") == job_data.get("time")):
+                    is_duplicate = True
+                    break
+            
+            if is_duplicate:
+                print("⚠️  DUPLICATE JOB DETECTED - Job already exists in schedule!")
+                print(f"   Type: {job_data.get('type')}, Topic: {job_data.get('topic')}, "
+                      f"Payload: {job_data.get('payload')}, Time: {job_data.get('time')}")
+                print("   Skipping duplicate job.")
+                print("-" * 30)
+                return
+            # --------------------------------
+            
             # 1. Register the job with the schedule library
             _create_schedule_job(job_data)
             
             # 2. Add the job to the persistent list
-            global PERSISTENT_JOBS
             PERSISTENT_JOBS.append(job_data)
             
             # 3. Save the new list to the file using the imported function

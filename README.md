@@ -19,6 +19,10 @@ A Python-based MQTT scheduler that allows you to schedule and automate MQTT mess
 
 - **Health Check / Ping-Pong**: Built-in health monitoring that responds to ping requests with status information
 
+- **Duplicate Prevention**: Automatically detects and prevents duplicate job submissions
+
+- **Job Listing**: Query all currently scheduled jobs via MQTT
+
 ## Architecture
 
 The project consists of three main components:
@@ -259,6 +263,92 @@ This will continuously monitor the scheduler health every 30 seconds.
 | `myhome/scheduler/status` | Receive status responses | Scheduler → Client |
 
 For detailed information, see [doc/ping_pong_health_check.md](doc/ping_pong_health_check.md)
+
+## Listing Scheduled Jobs
+
+You can query all currently scheduled jobs to see what's active.
+
+### Using Python Script
+
+```bash
+python list_jobs.py
+```
+
+**Output:**
+
+```
+============================================================
+📋 SCHEDULED JOBS
+============================================================
+Timestamp:   2025-12-15 19:10:45
+Total Jobs:  2
+============================================================
+
+Job #1:
+  Type:    daily
+  Topic:   esp8266/command
+  Payload: OFF
+  Time:    22:00
+
+Job #2:
+  Type:    interval
+  Topic:   sensor/status
+  Payload: CHECK
+  Time:    300
+============================================================
+```
+
+### Using MQTT Client
+
+```bash
+# Request job list
+mosquitto_pub -h broker.hivemq.com -t "myhome/scheduler/list_jobs" -m "list"
+
+# Listen for response
+mosquitto_sub -h broker.hivemq.com -t "myhome/scheduler/status" -v
+```
+
+## Duplicate Prevention
+
+The scheduler automatically prevents duplicate job submissions. If you try to submit a job that already exists (same type, topic, payload, and time), it will be rejected.
+
+**Example:**
+
+First submission:
+
+```json
+{
+  "type": "daily",
+  "topic": "esp8266/command",
+  "payload": "OFF",
+  "time": "22:00"
+}
+```
+
+✅ Job added successfully
+
+Second submission (identical):
+
+```json
+{
+  "type": "daily",
+  "topic": "esp8266/command",
+  "payload": "OFF",
+  "time": "22:00"
+}
+```
+
+⚠️ Duplicate detected - job NOT added
+
+**Console output:**
+
+```
+⚠️  DUPLICATE JOB DETECTED - Job already exists in schedule!
+   Type: daily, Topic: esp8266/command, Payload: OFF, Time: 22:00
+   Skipping duplicate job.
+```
+
+For detailed information, see [doc/duplicate_prevention.md](doc/duplicate_prevention.md)
 
 ## Troubleshooting
 

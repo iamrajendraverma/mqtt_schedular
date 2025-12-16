@@ -188,7 +188,14 @@ def on_message(client, userdata, msg):
                     break
             
             if is_duplicate:
+                error_msg = json.dumps({
+                    "status": "error",
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "message": "DUPLICATE JOB DETECTED - Job already exists in schedule!"
+                })
                 print("⚠️  DUPLICATE JOB DETECTED - Job already exists in schedule!")
+                client.publish(STATUS_TOPIC, error_msg, retain=True)
+
                 print(f"   Type: {job_data.get('type')}, Topic: {job_data.get('topic')}, "
                       f"Payload: {job_data.get('payload')}, Time: {job_data.get('time')}")
                 print("   Skipping duplicate job.")

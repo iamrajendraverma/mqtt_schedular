@@ -48,7 +48,7 @@ def get_client_id():
 CLIENT_ID = get_client_id()
 print(f"Generated Client ID: {CLIENT_ID}")
 
-client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=CLIENT_ID)
+client = mqtt.Client(client_id=CLIENT_ID)
 
 def _delete_job_entry(job_data_to_delete):
     """
@@ -155,10 +155,10 @@ def _create_schedule_job(job_data):
         print(f"  -> SCHEDULED ONCE at {time_value}: publish '{payload}' to {topic}. Will self-cancel.")
 
 
-def on_connect(client, userdata, flags, reason_code, properties):
+def on_connect(client, userdata, flags, rc):
     # ... (same as before)
-    if reason_code.is_failure: 
-        print(f"Failed to connect, return code {reason_code.rc}")
+    if rc != 0: 
+        print(f"Failed to connect, return code {rc}")
     else:
         print(f"[{datetime.now().strftime('%H:%M:%S')}] Connected to MQTT Broker!")
         
@@ -195,7 +195,7 @@ def on_connect(client, userdata, flags, reason_code, properties):
         client.publish(STATUS_TOPIC, status_msg, retain=True)
         print(f"Published online status to {STATUS_TOPIC}")
         presence_payload = {"id":CLIENT_ID, "status": "connected"}
-        client.publish(ACTIVE_CLIENT_TOPIC, presence_payload, retain=True)
+        client.publish(ACTIVE_CLIENT_TOPIC, json.dumps(presence_payload), retain=True)
         print(f"Published online status to {ACTIVE_CLIENT_TOPIC}")
 
 def on_message(client, userdata, msg):

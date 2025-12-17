@@ -2,8 +2,11 @@ import paho.mqtt.client as mqtt
 import schedule
 import time
 import json
+import platform
+import uuid
 from datetime import datetime
 # --- IMPORT PERSISTENCE FUNCTIONS ---
+import persistence # Changed slightly to ensure correct import if needed, but original was 'from persistence import ...'
 from persistence import load_schedules, save_schedules
 # ------------------------------------
 
@@ -25,6 +28,7 @@ LIST_JOBS_TOPIC = "myhome/scheduler/list_jobs"  # Topic to request list of all j
 # --- NEW DELETION TOPICS ---
 DELETE_JOB_TOPIC = "myhome/scheduler/delete_job"      # Topic to receive a specific job to delete
 DELETE_ALL_TOPIC = "myhome/scheduler/delete_all_jobs" # Topic to delete all jobs
+ACTIVE_CLIENT_TOPIC = "myhome/scheduler/active_client" # Topic to track active clients
 # ---------------------------
 
 # Global list to hold the raw JSON data for all active jobs
@@ -35,7 +39,16 @@ PERSISTENT_JOBS = []
 # --- 2. CORE LOGIC & MQTT SETUP ---
 # =================================================================
 
-client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+def get_client_id():
+    """Generates a unique client ID based on OS and MAC address."""
+    mac = uuid.getnode()
+    mac_address = ':'.join(('%012X' % mac)[i:i+2] for i in range(0, 12, 2))
+    return f"{platform.system()}_{mac_address}"
+
+CLIENT_ID = get_client_id()
+print(f"Generated Client ID: {CLIENT_ID}")
+
+client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=CLIENT_ID)
 
 def _delete_job_entry(job_data_to_delete):
     """
@@ -167,6 +180,16 @@ def on_connect(client, userdata, flags, reason_code, properties):
         
         client.subscribe(DELETE_ALL_TOPIC)
         print(f"Subscribed to delete all jobs topic: {DELETE_ALL_TOPIC}")
+        
+        # --- Publish Active Client Status ---
+        active_msg = json.dumps({
+            "client_id": CLIENT_ID,
+            "status": "connected",
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "type": "scheduler_service"
+        })
+        client.publish(ACTIVE_CLIENT_TOPIC, active_msg, retain=True)
+        print(f"Published client active status to {ACTIVE_CLIENT_TOPIC}")
         # -------------------------
         
         # Publish initial status message
@@ -395,6 +418,16 @@ for job_data in jobs_to_recreate:
 # 2. Connect to the broker
 try:
     print(f"\nAttempting to connect to {BROKER_ADDRESS}:{PORT}...")
+    
+    # Set Last Will and Testament (LWT) for disconnection
+    will_msg = json.dumps({
+        "client_id": CLIENT_ID,
+        "status": "disconnected",
+        "timestamp": "unexpected_disconnect",
+        "type": "scheduler_service"
+    })
+    client.will_set(ACTIVE_CLIENT_TOPIC, will_msg, retain=True)
+    
     client.connect(BROKER_ADDRESS, PORT, KEEPALIVE)
     client.loop_start() 
 except Exception as e:

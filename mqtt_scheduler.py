@@ -28,7 +28,7 @@ LIST_JOBS_TOPIC = "myhome/scheduler/list_jobs"  # Topic to request list of all j
 # --- NEW DELETION TOPICS ---
 DELETE_JOB_TOPIC = "myhome/scheduler/delete_job"      # Topic to receive a specific job to delete
 DELETE_ALL_TOPIC = "myhome/scheduler/delete_all_jobs" # Topic to delete all jobs
-ACTIVE_CLIENT_TOPIC = "myhome/scheduler/active_client" # Topic to track active clients
+ACTIVE_CLIENT_TOPIC = "myhome/scheduler/status" # Topic to track active clients
 # ---------------------------
 
 # Global list to hold the raw JSON data for all active jobs

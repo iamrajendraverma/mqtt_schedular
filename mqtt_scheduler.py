@@ -418,12 +418,12 @@ try:
     
     # Set Last Will and Testament (LWT) for disconnection
     will_msg = json.dumps({
-        "client_id": CLIENT_ID,
+        "id": CLIENT_ID,
         "status": "disconnected",
         "timestamp": "unexpected_disconnect",
         "type": "scheduler_service"
     })
-    client.will_set(STATUS_TOPIC, will_msg, retain=True)
+    client.will_set(ACTIVE_CLIENT_TOPIC, will_msg, retain=True)
     
     client.connect(BROKER_ADDRESS, PORT, KEEPALIVE)
     client.loop_start() 

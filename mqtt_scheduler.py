@@ -160,6 +160,14 @@ def on_connect(client, userdata, flags, reason_code, properties):
         # Subscribe to list jobs topic
         client.subscribe(LIST_JOBS_TOPIC)
         print(f"Subscribed to list jobs topic: {LIST_JOBS_TOPIC}")
+
+        # --- NEW SUBSCRIPTIONS ---
+        client.subscribe(DELETE_JOB_TOPIC)
+        print(f"Subscribed to specific job deletion topic: {DELETE_JOB_TOPIC}")
+        
+        client.subscribe(DELETE_ALL_TOPIC)
+        print(f"Subscribed to delete all jobs topic: {DELETE_ALL_TOPIC}")
+        # -------------------------
         
         # Publish initial status message
         status_msg = json.dumps({

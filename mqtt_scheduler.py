@@ -24,6 +24,7 @@ CONTROL_TOPIC = "myhome/scheduler/submit_job"
 PING_TOPIC = "myhome/scheduler/ping"          # Topic to receive ping requests
 STATUS_TOPIC = "myhome/scheduler/status"      # Topic to publish pong/status responses
 LIST_JOBS_TOPIC = "myhome/scheduler/list_jobs"  # Topic to request list of all jobs
+ACTIVE_CLIENT_TOPIC = "active_client"
 
 # --- NEW DELETION TOPICS ---
 DELETE_JOB_TOPIC = "myhome/scheduler/delete_job"      # Topic to receive a specific job to delete
@@ -179,7 +180,9 @@ def on_connect(client, userdata, flags, reason_code, properties):
         
         client.subscribe(DELETE_ALL_TOPIC)
         print(f"Subscribed to delete all jobs topic: {DELETE_ALL_TOPIC}")
-        
+        client.subscribe(ACTIVE_CLIENT_TOPIC)
+        print(f"Subscribed to active client topic: {ACTIVE_CLIENT_TOPIC}")
+
         
         # Publish initial status message
         status_msg = json.dumps({
@@ -191,6 +194,9 @@ def on_connect(client, userdata, flags, reason_code, properties):
         })
         client.publish(STATUS_TOPIC, status_msg, retain=True)
         print(f"Published online status to {STATUS_TOPIC}")
+        presence_payload = {"id":CLIENT_ID, "status": "connected"}
+        client.publish(ACTIVE_CLIENT_TOPIC, presence_payload, retain=True)
+        print(f"Published online status to {ACTIVE_CLIENT_TOPIC}")
 
 def on_message(client, userdata, msg):
     """Receives new job commands and ping requests."""

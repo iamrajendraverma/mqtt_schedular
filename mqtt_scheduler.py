@@ -28,7 +28,6 @@ LIST_JOBS_TOPIC = "myhome/scheduler/list_jobs"  # Topic to request list of all j
 # --- NEW DELETION TOPICS ---
 DELETE_JOB_TOPIC = "myhome/scheduler/delete_job"      # Topic to receive a specific job to delete
 DELETE_ALL_TOPIC = "myhome/scheduler/delete_all_jobs" # Topic to delete all jobs
-ACTIVE_CLIENT_TOPIC = "myhome/scheduler/status" # Topic to track active clients
 # ---------------------------
 
 # Global list to hold the raw JSON data for all active jobs
@@ -181,19 +180,11 @@ def on_connect(client, userdata, flags, reason_code, properties):
         client.subscribe(DELETE_ALL_TOPIC)
         print(f"Subscribed to delete all jobs topic: {DELETE_ALL_TOPIC}")
         
-        # --- Publish Active Client Status ---
-        active_msg = json.dumps({
-            "client_id": CLIENT_ID,
-            "status": "connected",
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "type": "scheduler_service"
-        })
-        client.publish(ACTIVE_CLIENT_TOPIC, active_msg, retain=True)
-        print(f"Published client active status to {ACTIVE_CLIENT_TOPIC}")
-        # -------------------------
         
         # Publish initial status message
         status_msg = json.dumps({
+            "client_id": CLIENT_ID,
+            "type": "scheduler_service",
             "status": "online",
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "active_jobs": len(PERSISTENT_JOBS)

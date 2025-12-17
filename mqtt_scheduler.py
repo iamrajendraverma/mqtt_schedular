@@ -229,6 +229,12 @@ def on_message(client, userdata, msg):
             
             if not all([job_data.get("type"), job_data.get("topic"), job_data.get("payload"), job_data.get("time")]):
                 print("ERROR: Job data is incomplete.")
+                error_msg = json.dumps({
+                    "status": "error",
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "message": "ERROR: Job data is incomplete."
+                })
+                client.publish(STATUS_TOPIC, error_msg, retain=True)
                 return
 
             print("-" * 30)
@@ -273,8 +279,20 @@ def on_message(client, userdata, msg):
             
         except json.JSONDecodeError:
             print(f"ERROR: Failed to decode JSON from topic {CONTROL_TOPIC}. Payload: {msg.payload}")
+            error_msg = json.dumps({
+                "status": "error",
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "message": "ERROR: Failed to decode JSON from topic {CONTROL_TOPIC}. Payload: {msg.payload}"
+            })
+            client.publish(STATUS_TOPIC, error_msg, retain=True)
         except Exception as e:
             print(f"CRITICAL ERROR during scheduling: {e}")
+            error_msg = json.dumps({
+                "status": "error",
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "message": f"CRITICAL ERROR during scheduling: {e}"
+            })
+            client.publish(STATUS_TOPIC, error_msg, retain=True)
         # ===============================================================
     # --- NEW: Handle Delete Specific Job Request ---
     # ===============================================================
@@ -303,8 +321,20 @@ def on_message(client, userdata, msg):
             
         except json.JSONDecodeError:
             print(f"ERROR: Failed to decode JSON from topic {DELETE_JOB_TOPIC}. Payload: {msg.payload}")
+            error_msg = json.dumps({
+                "status": "error",
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "message": f"ERROR: Failed to decode JSON from topic {DELETE_JOB_TOPIC}. Payload: {msg.payload}"
+            })
+            client.publish(STATUS_TOPIC, error_msg, retain=True)
         except Exception as e:
             print(f"CRITICAL ERROR during specific job deletion: {e}")
+            error_msg = json.dumps({
+                "status": "error",
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "message": f"CRITICAL ERROR during specific job deletion: {e}"
+            })
+            client.publish(STATUS_TOPIC, error_msg, retain=True)
 
     # ===============================================================
     # --- NEW: Handle Delete ALL Jobs Request ---
@@ -337,6 +367,12 @@ def on_message(client, userdata, msg):
             
         except Exception as e:
             print(f"CRITICAL ERROR during delete all jobs: {e}")
+            error_msg = json.dumps({
+                "status": "error",
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "message": f"CRITICAL ERROR during delete all jobs: {e}"
+            })
+            client.publish(STATUS_TOPIC, error_msg, retain=True)
 
 # Set the callback functions
 client.on_connect = on_connect

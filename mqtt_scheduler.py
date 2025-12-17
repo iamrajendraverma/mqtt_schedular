@@ -417,7 +417,7 @@ try:
         "timestamp": "unexpected_disconnect",
         "type": "scheduler_service"
     })
-    client.will_set(ACTIVE_CLIENT_TOPIC, will_msg, retain=True)
+    client.will_set(STATUS_TOPIC, will_msg, retain=True)
     
     client.connect(BROKER_ADDRESS, PORT, KEEPALIVE)
     client.loop_start() 

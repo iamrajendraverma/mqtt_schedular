@@ -1,4 +1,6 @@
 import paho.mqtt.client as mqtt
+import ssl
+import certifi
 import schedule
 import time
 import json
@@ -14,11 +16,13 @@ from persistence import load_schedules, save_schedules
 # --- 1. CONFIGURATION ---
 # =================================================================
 
-BROKER_ADDRESS = "broker.hivemq.com" 
-PORT = 1883        
+BROKER_ADDRESS = "b79f9ebae0ab4f2fb4478ac4ee286e33.s1.eu.hivemq.cloud"
+PORT = 8883
+USERNAME = "rajendra"
+PASSWORD = "Root1234"
+
 KEEPALIVE = 60
-USERNAME = None    
-PASSWORD = None    
+    
 
 CONTROL_TOPIC = "myhome/scheduler/submit_job"
 PING_TOPIC = "myhome/scheduler/ping"          # Topic to receive ping requests
@@ -401,6 +405,9 @@ client.on_message = on_message
 # Add authentication if needed
 if USERNAME and PASSWORD:
     client.username_pw_set(USERNAME, PASSWORD)
+
+# Enable TLS for HiveMQ Cloud (Port 8883)
+client.tls_set(ca_certs=certifi.where())
 
 # =================================================================
 # --- 4. EXECUTION STARTUP ---

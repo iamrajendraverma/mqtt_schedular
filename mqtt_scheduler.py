@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 # --- IMPORT PERSISTENCE FUNCTIONS ---
 import persistence # Changed slightly to ensure correct import if needed, but original was 'from persistence import ...'
-from persistence import load_schedules, save_schedules
+from persistence import load_schedules, save_schedules, load_clients, save_clients
 # ------------------------------------
 
 # =================================================================
@@ -33,10 +33,13 @@ ACTIVE_CLIENT_TOPIC = "active_client"
 # --- NEW DELETION TOPICS ---
 DELETE_JOB_TOPIC = "myhome/scheduler/delete_job"      # Topic to receive a specific job to delete
 DELETE_ALL_TOPIC = "myhome/scheduler/delete_all_jobs" # Topic to delete all jobs
+CLIENT_REQUEST_TOPIC = "+/request/clients"            # Topic to receive requests for client list
 # ---------------------------
 
 # Global list to hold the raw JSON data for all active jobs
 PERSISTENT_JOBS = [] 
+# Global dict to hold active clients
+ACTIVE_CLIENTS = {} 
 
 
 # =================================================================
@@ -186,6 +189,8 @@ def on_connect(client, userdata, flags, rc):
         print(f"Subscribed to delete all jobs topic: {DELETE_ALL_TOPIC}")
         client.subscribe(ACTIVE_CLIENT_TOPIC)
         print(f"Subscribed to active client topic: {ACTIVE_CLIENT_TOPIC}")
+        client.subscribe(CLIENT_REQUEST_TOPIC)
+        print(f"Subscribed to client request topic: {CLIENT_REQUEST_TOPIC}")
 
         
         # Publish initial status message
@@ -205,7 +210,7 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     """Receives new job commands and ping requests."""
     
-    global PERSISTENT_JOBS  # Declare at the top of the function
+    global PERSISTENT_JOBS, ACTIVE_CLIENTS  # Declare at the top of the function
     
     # Handle ping requests for health checks
     if msg.topic == PING_TOPIC:
@@ -398,6 +403,64 @@ def on_message(client, userdata, msg):
             })
             client.publish(STATUS_TOPIC, error_msg, retain=True)
 
+    # ===============================================================
+    # --- NEW: Handle Active Client Updates ---
+    # ===============================================================
+    elif msg.topic == ACTIVE_CLIENT_TOPIC:
+        try:
+            payload_data = json.loads(msg.payload.decode('utf-8'))
+            client_id = payload_data.get("id")
+            status = payload_data.get("status")
+            
+            if client_id:
+                # Update the client data
+                current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                ACTIVE_CLIENTS[client_id] = {
+                    "id": client_id,
+                    "status": status,
+                    "last_seen": current_time,
+                    "payload": payload_data # Store full payload in case of extra fields
+                }
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] Client Update: {client_id} is {status}")
+                save_clients(ACTIVE_CLIENTS)
+                
+        except Exception as e:
+            print(f"ERROR handling active client update: {e}")
+
+    # ===============================================================
+    # --- NEW: Handle Client List Request ---
+    # ===============================================================
+    elif msg.topic.endswith("/request/clients"):
+        try:
+            # Decode and parse payload to check for self-echo
+            try:
+                payload_str = msg.payload.decode('utf-8')
+                data = json.loads(payload_str)
+            except:
+                data = {} # Treat non-JSON/empty as a valid request
+
+            # STOP LOOP: If the payload contains 'clients', it is our own response echoing back.
+            if isinstance(data, dict) and "clients" in data:
+                return
+
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Received Client List Request on {msg.topic}")
+            
+            # Convert dictionary keys/values to list for publishing
+            client_list = list(ACTIVE_CLIENTS.values())
+            
+            response = json.dumps({
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "total_clients": len(client_list),
+                "clients": client_list
+            })
+            
+            # Publish back to the SAME topic as requested
+            client.publish(msg.topic, response)
+            print(f"Sent list of {len(client_list)} clients to {msg.topic}")
+            
+        except Exception as e:
+            print(f"ERROR handling client list request: {e}")
+
 # Set the callback functions
 client.on_connect = on_connect
 client.on_message = on_message
@@ -418,6 +481,9 @@ jobs_to_recreate = load_schedules()
 for job_data in jobs_to_recreate:
     PERSISTENT_JOBS.append(job_data) # Re-populate the runtime list
     _create_schedule_job(job_data)   # Recreate job in the scheduler
+
+# 1.5 Load known clients
+ACTIVE_CLIENTS = load_clients()
 
 # 2. Connect to the broker
 try:

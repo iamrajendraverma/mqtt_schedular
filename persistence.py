@@ -32,3 +32,40 @@ def save_schedules(persistent_jobs_list):
         print(f"[PERSISTENCE ERROR] Could not save schedules to file: {e}")
 
 # Note: This file only contains functions and constants, no execution logic.
+CLIENTS_FILE = "clients.json"
+
+def load_clients():
+    """Reads clients from the JSON file. Returns an empty dict if file not found or corrupted."""
+    
+    if os.path.exists(CLIENTS_FILE):
+        try:
+            with open(CLIENTS_FILE, 'r') as f:
+                clients_to_load = json.load(f)
+            print(f"[PERSISTENCE] Successfully loaded {len(clients_to_load)} client(s) from {CLIENTS_FILE}.")
+            # ensure it's a dict (in case it was saved as list previously, though we implement as dict)
+            if isinstance(clients_to_load, list):
+                 # Convert list to dict keyed by 'id' if possible, or just start fresh if strict
+                 temp_dict = {}
+                 for c in clients_to_load:
+                     if 'id' in c:
+                         temp_dict[c['id']] = c
+                 return temp_dict
+            return clients_to_load
+        
+        except (IOError, json.JSONDecodeError) as e:
+            print(f"[PERSISTENCE ERROR] Failed to load clients: {e}. Starting with an empty client list.")
+            return {}
+    else:
+        print("[PERSISTENCE] No persistent clients file found. Starting fresh.")
+        return {}
+
+
+def save_clients(clients_dict):
+    """Saves the current dict of clients to the JSON file."""
+    try:
+        with open(CLIENTS_FILE, 'w') as f:
+            # Use indent=4 for human-readable formatting
+            json.dump(clients_dict, f, indent=4)
+        print(f"[PERSISTENCE] Client state saved to {CLIENTS_FILE}.")
+    except IOError as e:
+        print(f"[PERSISTENCE ERROR] Could not save clients to file: {e}")

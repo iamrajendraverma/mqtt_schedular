@@ -82,3 +82,17 @@ def load_switches():
 def save_switches(switches_data):
     with open(SWITCHES_FILE, 'w') as f:
         json.dump(switches_data, f, indent=4)
+
+# Note: This file only contains functions and constants, no execution logic.
+
+SWITCHES_STATE_FILE = "switches_state.json"
+
+def load_switches_state():
+    if os.path.exists(SWITCHES_STATE_FILE):
+        with open(SWITCHES_STATE_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_switches_state(switches_state_data):
+    with open(SWITCHES_STATE_FILE, 'w') as f:
+        json.dump(switches_state_data, f, indent=4)

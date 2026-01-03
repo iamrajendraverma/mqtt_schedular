@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 # --- IMPORT PERSISTENCE FUNCTIONS ---
 import persistence # Changed slightly to ensure correct import if needed, but original was 'from persistence import ...'
-from persistence import load_schedules, save_schedules, load_clients, save_clients ,save_switches, load_switches
+from persistence import load_schedules, save_schedules, load_clients, save_clients ,save_switches, load_switches ,load_switches_state, save_switches_state
 # ------------------------------------
 
 # =================================================================
@@ -40,6 +40,9 @@ CLIENT_REQUEST_TOPIC = "+/request/clients"            # Topic to receive request
 # --- NEW SWITCH TOPICS ---
 SWITCH_CREATE_TOPIC = "+/create/switch"            # Topic to receive requests for switch list
 # ---------------------------
+SWITCH_STATE_TOPIC = "+/command"            # Topic to receive requests for switch list
+# ---------------------------
+
 
 # Global list to hold the raw JSON data for all active jobs
 PERSISTENT_JOBS = [] 
@@ -47,6 +50,9 @@ PERSISTENT_JOBS = []
 ACTIVE_CLIENTS = {} 
 # Global dict to hold all switches
 ALL_SWITCHES = load_switches()
+# Global dict to hold all switches state
+ALL_SWITCHES_STATE = load_switches_state()
+
 
 
 # =================================================================
@@ -200,6 +206,8 @@ def on_connect(client, userdata, flags, rc):
         print(f"Subscribed to client request topic: {CLIENT_REQUEST_TOPIC}")
         client.subscribe(SWITCH_CREATE_TOPIC)
         print(f"Subscribed to switch create topic: {SWITCH_CREATE_TOPIC}")
+        client.subscribe(SWITCH_STATE_TOPIC)
+        print(f"Subscribed to switch state topic: {SWITCH_STATE_TOPIC}")    
 
         
         # Publish initial status message
@@ -460,7 +468,20 @@ def on_message(client, userdata, msg):
                 # Create a copy so we don't permanently alter ACTIVE_CLIENTS in memory
                 merged_data = cdata.copy()
                 # Attach switches if they exist for this specific client ID
-                merged_data["switches"] = ALL_SWITCHES.get(cid, [])
+                client_switches = ALL_SWITCHES.get(cid, [])
+                
+                # Merge state for each switch
+                merged_switches = []
+                for switch in client_switches:
+                    s_copy = switch.copy()
+                    s_id = s_copy.get("id")
+                    if cid in ALL_SWITCHES_STATE:
+                        s_copy.update(ALL_SWITCHES_STATE[cid])
+                    elif s_id and s_id in ALL_SWITCHES_STATE:
+                        s_copy.update(ALL_SWITCHES_STATE[s_id])
+                    merged_switches.append(s_copy)
+                
+                merged_data["switches"] = merged_switches
                 client_list_response.append(merged_data)
 
             response = json.dumps({
@@ -510,6 +531,19 @@ def on_message(client, userdata, msg):
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] Saved new switch for {client_id}")
         except Exception as e:
             print(f"ERROR creating switch: {e}")
+    elif msg.topic.endswith("/command"):
+        try:
+            device_id  = msg.topic.split("/")[-2]
+            state = msg.payload.decode('utf-8')
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            ALL_SWITCHES_STATE[device_id] = {
+                "state": state,
+                "time": current_time
+            }
+            save_switches_state(ALL_SWITCHES_STATE)
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Switch State Updated: {device_id} -> {state}")
+        except Exception as e:
+            print(f"ERROR updating switch state: {e}")
 
 # Set the callback functions
 client.on_connect = on_connect

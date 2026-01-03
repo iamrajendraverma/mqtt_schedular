@@ -7,6 +7,10 @@ import json
 import platform
 import uuid
 from datetime import datetime
+import os
+import uuid
+import platform
+import subprocess
 # --- IMPORT PERSISTENCE FUNCTIONS ---
 import persistence # Changed slightly to ensure correct import if needed, but original was 'from persistence import ...'
 from persistence import load_schedules, save_schedules, load_clients, save_clients ,save_switches, load_switches ,load_switches_state, save_switches_state
@@ -60,10 +64,48 @@ ALL_SWITCHES_STATE = load_switches_state()
 # =================================================================
 
 def get_client_id():
-    """Generates a unique client ID based on OS and MAC address."""
-    mac = uuid.getnode()
-    mac_address = ':'.join(('%012X' % mac)[i:i+2] for i in range(0, 12, 2))
-    return f"{platform.system()}_{mac_address}"
+    # 1. Check for a saved "Identity File" first (Works on both Darwin & Termux)
+    # This is the most reliable way to keep the ID static forever.
+    id_file = os.path.expanduser("~/.client_id_token")
+    if os.path.exists(id_file):
+        with open(id_file, "r") as f:
+            return f.read().strip()
+
+    # 2. If no file exists, generate an ID based on the System
+    system_type = platform.system() # 'Darwin' or 'Linux' (Termux)
+    
+    if system_type == "Darwin":
+        # On Mac, we can actually get a fairly stable ID from the hardware
+        # We'll use the 'IOPlatformUUID' which is more stable than a MAC
+        try:
+            cmd = "ioreg -rd1 -c IOPlatformExpertDevice | grep IOPlatformUUID"
+            raw_id = subprocess.check_output(cmd, shell=True).decode().split('"')[-2]
+            final_id = f"Mac_{raw_id[:8]}"
+        except:
+            final_id = f"Mac_{uuid.uuid4().hex[:8]}"
+            
+    elif system_type == "Linux":
+        # Check if we are specifically in Termux
+        if "com.termux" in os.environ.get("PREFIX", ""):
+            final_id = f"Termux_{uuid.uuid4().hex[:8]}"
+        else:
+            final_id = f"Linux_{uuid.uuid4().hex[:8]}"
+    else:
+        final_id = f"{system_type}_{uuid.uuid4().hex[:8]}"
+
+    # 3. Save the generated ID so it NEVER changes again
+    try:
+        with open(id_file, "w") as f:
+            f.write(final_id)
+    except:
+        pass # Fallback if file system is read-only
+        
+    return final_id
+
+# Usage
+client_id = get_client_id()
+print(f"Current System: {platform.system()}")
+print(f"Assigned ID: {client_id}")
 
 CLIENT_ID = get_client_id()
 print(f"Generated Client ID: {CLIENT_ID}")

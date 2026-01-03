@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 # --- IMPORT PERSISTENCE FUNCTIONS ---
 import persistence # Changed slightly to ensure correct import if needed, but original was 'from persistence import ...'
-from persistence import load_schedules, save_schedules, load_clients, save_clients
+from persistence import load_schedules, save_schedules, load_clients, save_clients ,save_switches, load_switches
 # ------------------------------------
 
 # =================================================================
@@ -33,13 +33,20 @@ ACTIVE_CLIENT_TOPIC = "active_client"
 # --- NEW DELETION TOPICS ---
 DELETE_JOB_TOPIC = "myhome/scheduler/delete_job"      # Topic to receive a specific job to delete
 DELETE_ALL_TOPIC = "myhome/scheduler/delete_all_jobs" # Topic to delete all jobs
+# ---------------------------
+# --- NEW CLIENT TOPICS ---
 CLIENT_REQUEST_TOPIC = "+/request/clients"            # Topic to receive requests for client list
+# ---------------------------
+# --- NEW SWITCH TOPICS ---
+SWITCH_CREATE_TOPIC = "+/create/switch"            # Topic to receive requests for switch list
 # ---------------------------
 
 # Global list to hold the raw JSON data for all active jobs
 PERSISTENT_JOBS = [] 
 # Global dict to hold active clients
 ACTIVE_CLIENTS = {} 
+# Global dict to hold all switches
+ALL_SWITCHES = load_switches()
 
 
 # =================================================================
@@ -191,6 +198,8 @@ def on_connect(client, userdata, flags, rc):
         print(f"Subscribed to active client topic: {ACTIVE_CLIENT_TOPIC}")
         client.subscribe(CLIENT_REQUEST_TOPIC)
         print(f"Subscribed to client request topic: {CLIENT_REQUEST_TOPIC}")
+        client.subscribe(SWITCH_CREATE_TOPIC)
+        print(f"Subscribed to switch create topic: {SWITCH_CREATE_TOPIC}")
 
         
         # Publish initial status message
@@ -446,20 +455,61 @@ def on_message(client, userdata, msg):
             print(f"[{datetime.now().strftime('%H:%M:%S')}] Received Client List Request on {msg.topic}")
             
             # Convert dictionary keys/values to list for publishing
-            client_list = list(ACTIVE_CLIENTS.values())
-            
+            client_list_response = []
+            for cid, cdata in ACTIVE_CLIENTS.items():
+                # Create a copy so we don't permanently alter ACTIVE_CLIENTS in memory
+                merged_data = cdata.copy()
+                # Attach switches if they exist for this specific client ID
+                merged_data["switches"] = ALL_SWITCHES.get(cid, [])
+                client_list_response.append(merged_data)
+
             response = json.dumps({
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "total_clients": len(client_list),
-                "clients": client_list
-            })
+                "total_clients": len(client_list_response),
+                "clients": client_list_response # This now matches your requested structure
+            }, indent=4)
             
-            # Publish back to the SAME topic as requested
             client.publish(msg.topic, response)
-            print(f"Sent list of {len(client_list)} clients to {msg.topic}")
-            
+            print(f"Sent merged client/switch list to {msg.topic}")            
         except Exception as e:
             print(f"ERROR handling client list request: {e}")
+    elif msg.topic.endswith("/create/switch"):
+        try:
+            data = json.loads(msg.payload.decode('utf-8'))
+            client_id = data.get("client_id")
+            structure = data.get("structure")
+
+            if client_id and structure:
+                # Generate a unique ID if not present
+                if "id" not in structure:
+                    structure["id"] = f"{client_id}/{uuid.uuid4().hex[:8]}"
+                
+                # Initialize list for this client if it doesn't exist
+                if client_id not in ALL_SWITCHES:
+                    ALL_SWITCHES[client_id] = []
+                
+                # Prevent duplicate structures (topic check)
+                new_topic = structure.get("topic")
+                if new_topic:
+                    is_duplicate = False
+                    for existing_switch in ALL_SWITCHES[client_id]:
+                        if existing_switch.get("topic") == new_topic:
+                            is_duplicate = True
+                            break
+                    
+                    if is_duplicate:
+                        print(f"[{datetime.now().strftime('%H:%M:%S')}] Warning: Switch with topic '{new_topic}' already exists for client {client_id}. Skipping creation.")
+                        # Optional: Publish an error back to status topic
+                        error_resp = json.dumps({"status": "error", "message": f"Topic {new_topic} already exists."})
+                        client.publish(STATUS_TOPIC, error_resp)
+                        return
+
+                ALL_SWITCHES[client_id].append(structure)
+                
+                save_switches(ALL_SWITCHES)
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] Saved new switch for {client_id}")
+        except Exception as e:
+            print(f"ERROR creating switch: {e}")
 
 # Set the callback functions
 client.on_connect = on_connect

@@ -69,3 +69,16 @@ def save_clients(clients_dict):
         print(f"[PERSISTENCE] Client state saved to {CLIENTS_FILE}.")
     except IOError as e:
         print(f"[PERSISTENCE ERROR] Could not save clients to file: {e}")
+
+# Note: This file only contains functions and constants, no execution logic.
+SWITCHES_FILE = "switches.json"
+
+def load_switches():
+    if os.path.exists(SWITCHES_FILE):
+        with open(SWITCHES_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_switches(switches_data):
+    with open(SWITCHES_FILE, 'w') as f:
+        json.dump(switches_data, f, indent=4)

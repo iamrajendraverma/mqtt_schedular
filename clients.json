@@ -7,5 +7,43 @@
             "id": "ESP8266-C8:C9:A3:39:18:0A",
             "status": "connected"
         }
+    },
+    "Termux_e0d1302d": {
+        "id": "Termux_e0d1302d",
+        "status": "disconnected",
+        "last_seen": "2026-01-03 20:20:03",
+        "payload": {
+            "id": "Termux_e0d1302d",
+            "status": "disconnected",
+            "timestamp": "unexpected_disconnect",
+            "type": "scheduler_service"
+        }
+    },
+    "Mac_2121C0CB": {
+        "id": "Mac_2121C0CB",
+        "status": "connected",
+        "last_seen": "2026-01-03 20:20:03",
+        "payload": {
+            "id": "Mac_2121C0CB",
+            "status": "connected"
+        }
+    },
+    "Android-23af9005a1f05552": {
+        "id": "Android-23af9005a1f05552",
+        "status": "connected",
+        "last_seen": "2026-01-03 20:23:44",
+        "payload": {
+            "id": "Android-23af9005a1f05552",
+            "status": "connected"
+        }
+    },
+    "Android-3e35d419f45a3080": {
+        "id": "Android-3e35d419f45a3080",
+        "status": "connected",
+        "last_seen": "2026-01-03 20:21:51",
+        "payload": {
+            "id": "Android-3e35d419f45a3080",
+            "status": "connected"
+        }
     }
 }

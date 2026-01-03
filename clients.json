@@ -1,13 +1,4 @@
 {
-    "Android_3e35d419f45a3080": {
-        "id": "Android_3e35d419f45a3080",
-        "status": "disconnected",
-        "last_seen": "2026-01-03 10:26:31",
-        "payload": {
-            "id": "Android_3e35d419f45a3080",
-            "status": "disconnected"
-        }
-    },
     "ESP8266-C8:C9:A3:39:18:0A": {
         "id": "ESP8266-C8:C9:A3:39:18:0A",
         "status": "connected",

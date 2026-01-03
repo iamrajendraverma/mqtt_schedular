@@ -1,33 +1,4 @@
 {
-    "Android_23af9005a1f05552": {
-        "id": "Android_23af9005a1f05552",
-        "status": "connected",
-        "last_seen": "2026-01-03 13:10:31",
-        "payload": {
-            "id": "Android_23af9005a1f05552",
-            "status": "connected"
-        }
-    },
-    "Darwin_1E:0D:40:0F:ED:80": {
-        "id": "Darwin_1E:0D:40:0F:ED:80",
-        "status": "connected",
-        "last_seen": "2026-01-03 13:19:17",
-        "payload": {
-            "id": "Darwin_1E:0D:40:0F:ED:80",
-            "status": "connected"
-        }
-    },
-    "Linux_C3:81:B8:B9:7C:B8": {
-        "id": "Linux_C3:81:B8:B9:7C:B8",
-        "status": "disconnected",
-        "last_seen": "2026-01-03 08:45:17",
-        "payload": {
-            "id": "Linux_C3:81:B8:B9:7C:B8",
-            "status": "disconnected",
-            "timestamp": "unexpected_disconnect",
-            "type": "scheduler_service"
-        }
-    },
     "Android_3e35d419f45a3080": {
         "id": "Android_3e35d419f45a3080",
         "status": "disconnected",

@@ -22,7 +22,7 @@
     "Mac_2121C0CB": {
         "id": "Mac_2121C0CB",
         "status": "connected",
-        "last_seen": "2026-01-03 20:20:03",
+        "last_seen": "2026-01-04 13:42:18",
         "payload": {
             "id": "Mac_2121C0CB",
             "status": "connected"
@@ -30,20 +30,29 @@
     },
     "Android-23af9005a1f05552": {
         "id": "Android-23af9005a1f05552",
-        "status": "connected",
-        "last_seen": "2026-01-03 20:23:44",
+        "status": "disconnected",
+        "last_seen": "2026-01-04 11:33:06",
         "payload": {
             "id": "Android-23af9005a1f05552",
-            "status": "connected"
+            "status": "disconnected"
         }
     },
     "Android-3e35d419f45a3080": {
         "id": "Android-3e35d419f45a3080",
         "status": "connected",
-        "last_seen": "2026-01-03 20:21:51",
+        "last_seen": "2026-01-04 13:36:26",
         "payload": {
             "id": "Android-3e35d419f45a3080",
             "status": "connected"
+        }
+    },
+    "ESP8266-50:02:91:68:FF:A3": {
+        "id": "ESP8266-50:02:91:68:FF:A3",
+        "status": "disconnected",
+        "last_seen": "2026-01-04 12:57:42",
+        "payload": {
+            "id": "ESP8266-50:02:91:68:FF:A3",
+            "status": "disconnected"
         }
     }
 }

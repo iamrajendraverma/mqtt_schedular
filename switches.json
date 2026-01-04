@@ -7,5 +7,21 @@
             "action_off": "OFF",
             "id": "ESP8266-C8:C9:A3:39:18:0A/de2bde1d"
         }
+    ],
+    "ESP8266-50:02:91:68:FF:A3": [
+        {
+            "name": "Fan",
+            "topic": "ESP8266-50:02:91:68:FF:A3/command/d1",
+            "action_on": "ON",
+            "action_off": "OFF",
+            "id": "ESP8266-50:02:91:68:FF:A3/de2bde14"
+        },
+        {
+            "name": "Light",
+            "topic": "ESP8266-50:02:91:68:FF:A3/command/d2",
+            "action_on": "ON",
+            "action_off": "OFF",
+            "id": "ESP8266-50:02:91:68:FF:A3/de2bde15"
+        }
     ]
 }

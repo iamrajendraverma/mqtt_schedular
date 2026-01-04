@@ -44,7 +44,7 @@ CLIENT_REQUEST_TOPIC = "+/request/clients"            # Topic to receive request
 # --- NEW SWITCH TOPICS ---
 SWITCH_CREATE_TOPIC = "+/create/switch"            # Topic to receive requests for switch list
 # ---------------------------
-SWITCH_STATE_TOPIC = "+/command"            # Topic to receive requests for switch list
+SWITCH_STATE_TOPIC = "+/command/#"            # Topic to receive requests for switch list
 # ---------------------------
 
 
@@ -517,11 +517,9 @@ def on_message(client, userdata, msg):
                 merged_switches = []
                 for switch in client_switches:
                     s_copy = switch.copy()
-                    s_id = s_copy.get("id")
-                    if cid in ALL_SWITCHES_STATE:
-                        s_copy.update(ALL_SWITCHES_STATE[cid])
-                    elif s_id and s_id in ALL_SWITCHES_STATE:
-                        s_copy.update(ALL_SWITCHES_STATE[s_id])
+                    topic = s_copy.get("topic")
+                    if topic in ALL_SWITCHES_STATE:
+                        s_copy.update(ALL_SWITCHES_STATE[topic])
                     merged_switches.append(s_copy)
                 
                 merged_data["switches"] = merged_switches
@@ -574,17 +572,17 @@ def on_message(client, userdata, msg):
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] Saved new switch for {client_id}")
         except Exception as e:
             print(f"ERROR creating switch: {e}")
-    elif msg.topic.endswith("/command"):
+    elif "/command" in msg.topic :
         try:
-            device_id  = msg.topic.split("/")[-2]
+            # device_id  = msg.topic.split("/")[-2]
             state = msg.payload.decode('utf-8')
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            ALL_SWITCHES_STATE[device_id] = {
+            ALL_SWITCHES_STATE[msg.topic] = {
                 "state": state,
                 "time": current_time
             }
             save_switches_state(ALL_SWITCHES_STATE)
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] Switch State Updated: {device_id} -> {state}")
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Switch State Updated: {msg.topic} -> {state}")
         except Exception as e:
             print(f"ERROR updating switch state: {e}")
 

@@ -470,8 +470,7 @@ def on_message(client, userdata, msg):
             payload_data = json.loads(msg.payload.decode('utf-8'))
             client_id = payload_data.get("id")
             status = payload_data.get("status")
-            if status == "disconnected":
-                client.publish("admin/request/clients", json.dumps({"offline-client": payload_data}))
+            client.publish("admin/request/clients", json.dumps({"client": payload_data, "action": "update"}))
             
             if client_id:
                 # Update the client data
